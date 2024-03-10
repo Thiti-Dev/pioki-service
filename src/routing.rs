@@ -1,5 +1,5 @@
 use actix_web::web;
-use crate::{db_connection::get_connection_pool, repository, services::users::get_users};
+use crate::{db_connection::get_connection_pool, repository, services::users::{create_user, get_users}};
 
 pub struct AppState{
     pub suspicious: bool
@@ -22,6 +22,7 @@ pub fn configure_route(cfg: &mut web::ServiceConfig) {
         .service(
             web::resource("/users").
             route(web::get().to(get_users))
+            .route(web::post().to(create_user))
         )
     );
 }

@@ -18,3 +18,11 @@ pub struct User {
     
     pub updated_at: NaiveDateTime,
 }
+
+#[derive(Insertable)]
+#[diesel(table_name = crate::schema::users)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct NewUser<'a> {
+    pub pioki_id: &'a str,
+    pub is_active: bool,
+}
