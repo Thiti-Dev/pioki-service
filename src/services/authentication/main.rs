@@ -1,9 +1,6 @@
 use google_oauth::AsyncClient;
 use serde::Serialize;
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
-
-use crate::middlewares::PIOKIIdentifierData;
-
+use actix_web::{HttpRequest, HttpResponse, Responder};
 
 
 #[derive(Serialize)] // Required for serde
@@ -34,17 +31,6 @@ pub async fn get_oauth_crendential(_body: String,req: HttpRequest) -> impl Respo
         },
         None => {
             HttpResponse::Unauthorized().body("No authorization header found")
-        },
-    }
-}
-
-pub async fn test(identifier_data: Option<web::ReqData<PIOKIIdentifierData>>,_: HttpRequest) -> impl Responder {
-    match identifier_data{
-        Some(identifier) => {
-            HttpResponse::Ok().json(identifier.id.to_string())
-        }
-        None => {
-            HttpResponse::BadGateway().body("Bad incoming source")
         },
     }
 }
