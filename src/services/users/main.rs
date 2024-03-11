@@ -23,9 +23,15 @@ pub async fn create_user(_: HttpRequest,identifier_data: Option<ReqData<PIOKIIde
         Some(identifier) => {
             // if identifier found from header, meaning that this came from pioki-frontend
             match user_repository.create_user(identifier.id.to_string().as_str()){
-                Ok(created_user) => HttpResponse::Ok().json(created_user),
-                Err(_) => {
+                Ok(created_user) => HttpResponse::Created().json(created_user),
+                Err(diesel::result::Error::DatabaseError(
+                    diesel::result::DatabaseErrorKind::UniqueViolation,
+                    _,
+                )) => {
                     HttpResponse::Conflict().body("Identifier does already exist")
+                },
+                Err(_) => {
+                    HttpResponse::InternalServerError().body("Something went wrong creating user")
                 },
             }
         }
