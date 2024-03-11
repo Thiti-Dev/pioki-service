@@ -5,15 +5,10 @@ pub struct PIOKIIdentifierData {
     pub id: String,
 }
 
-// impl Default for PIOKIIdentifierData {
-//     fn default() -> Self {
-//         PIOKIIdentifierData {
-//             id: None
-//         }
-//     }
-// }
-
-
+///@Usage
+/// ```
+///create_user(_: HttpRequest,identifier_data: Option<ReqData<PIOKIIdentifierData>>)
+///```
 pub fn identifier_extractor(req: &ServiceRequest){
     let headers = req.headers();
     let identifier_header = headers.get("pioki-identifier");

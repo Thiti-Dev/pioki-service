@@ -1,6 +1,7 @@
+use reqwest::StatusCode;
 use routing::{configure_route};
 use serde::Serialize;
-use actix_web::{ dev::Service as _, middleware::{self, Logger}, App, HttpServer};
+use actix_web::{ dev::{self, Service as _}, http::header, middleware::{self, ErrorHandlerResponse, ErrorHandlers, Logger}, App, HttpResponse, HttpResponseBuilder, HttpServer, Result};
 use dotenv::dotenv;
 
 mod routing;
@@ -20,6 +21,7 @@ struct ProviderPayload {
   id: String,
 }
 
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
 
@@ -35,6 +37,10 @@ async fn main() -> std::io::Result<()> {
             .wrap(middleware::DefaultHeaders::new().add(("X-Version", "0.1")))
             .wrap(Logger::default())
             .wrap(Logger::new("%a %{User-Agent}i"))
+            .wrap_fn(|req,srv| {
+                middlewares::valid_incoming_source_checker::valid_incoming_source_checker(&req);
+                srv.call(req)
+            })
             .configure(configure_route)
     })
     .bind(("127.0.0.1", 8080))?
