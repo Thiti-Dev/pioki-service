@@ -1,7 +1,6 @@
-use reqwest::StatusCode;
-use routing::{configure_route};
+use routing::configure_route;
 use serde::Serialize;
-use actix_web::{ dev::{self, Service as _}, http::header, middleware::{self, ErrorHandlerResponse, ErrorHandlers, Logger}, App, HttpResponse, HttpResponseBuilder, HttpServer, Result};
+use actix_web::{ dev::Service as _, middleware::{self, Logger}, App, HttpServer};
 use dotenv::dotenv;
 
 mod routing;
