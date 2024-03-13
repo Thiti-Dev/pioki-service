@@ -1,12 +1,12 @@
-use std::borrow::Borrow;
-
 use actix_web::web::{Data, ReqData};
 use actix_web::{HttpRequest, HttpResponse, Responder};
 
+use crate::dtos::users::CreateUserDTO;
 use crate::middlewares::valid_incoming_source_checker::PortalAuthenticated;
 use crate::middlewares::PIOKIIdentifierData;
-use crate::models::User;
 use crate::repository;
+use crate::utils::validation;
+use crate::utils::validation::core::throw_error_response_based_on_validation_error_kind;
 
 pub async fn get_users(_: HttpRequest,user_repository: Data<repository::users::UserRepository>) -> impl Responder {
     let users = user_repository.get_users();
@@ -21,25 +21,33 @@ pub async fn get_users(_: HttpRequest,user_repository: Data<repository::users::U
     HttpResponse::Ok().json(users)
 }
 
-pub async fn create_user(_: HttpRequest,identifier_data: Option<ReqData<PIOKIIdentifierData>>,user_repository: Data<repository::users::UserRepository>,_:PortalAuthenticated) -> impl Responder {
-    match identifier_data{
-        Some(identifier) => {
-            // if identifier found from header, meaning that this came from pioki-frontend
-            match user_repository.create_user(identifier.id.to_string().as_str()){
-                Ok(created_user) => HttpResponse::Created().json(created_user),
-                Err(diesel::result::Error::DatabaseError(
-                    diesel::result::DatabaseErrorKind::UniqueViolation,
-                    _,
-                )) => {
-                    HttpResponse::Conflict().body("Identifier does already exist")
-                },
-                Err(_) => {
-                    HttpResponse::InternalServerError().body("Something went wrong creating user")
+pub async fn create_user(_: HttpRequest,body: String ,identifier_data: Option<ReqData<PIOKIIdentifierData>>,user_repository: Data<repository::users::UserRepository>,_:PortalAuthenticated) -> impl Responder {
+    //println!("{}", body);
+    let dto = validation::core::serialize_body_into_struct::<CreateUserDTO>(&body);
+
+    match dto{
+        Ok(create_user_dto) => {
+            match identifier_data{
+                Some(identifier) => {
+                    // if identifier found from header, meaning that this came from pioki-frontend
+                    match user_repository.create_user(identifier.id.to_string().as_str(),&create_user_dto.oauth_display_name[..if create_user_dto.oauth_display_name.len() > 32 {32} else {create_user_dto.oauth_display_name.len()}],create_user_dto.oauth_profile_picture.as_deref()){
+                        Ok(created_user) => HttpResponse::Created().json(created_user),
+                        Err(diesel::result::Error::DatabaseError(
+                            diesel::result::DatabaseErrorKind::UniqueViolation,
+                            _,
+                        )) => {
+                            HttpResponse::Conflict().body("Identifier does already exist")
+                        },
+                        Err(_) => {
+                            HttpResponse::InternalServerError().body("Something went wrong creating user")
+                        },
+                    }
+                }
+                None => {
+                    HttpResponse::BadGateway().body("Bad incoming source")
                 },
             }
-        }
-        None => {
-            HttpResponse::BadGateway().body("Bad incoming source")
         },
+        Err(ekind) => throw_error_response_based_on_validation_error_kind(ekind)
     }
 }

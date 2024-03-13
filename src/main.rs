@@ -1,6 +1,7 @@
+use reqwest::StatusCode;
 use routing::configure_route;
 use serde::Serialize;
-use actix_web::{ dev::Service as _, middleware::{self, Logger}, App, HttpServer};
+use actix_web::{ dev::{Service as _, ServiceResponse}, error::InternalError, http::header, middleware::{self, ErrorHandlerResponse, ErrorHandlers, Logger}, web, App, HttpMessage, HttpResponse, HttpServer, Result};
 use dotenv::dotenv;
 
 mod routing;
@@ -19,6 +20,15 @@ struct ProviderPayload {
   email: String,
   id: String,
 }
+
+// fn add_error_header<B>(mut res: ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>> {
+//     res.response_mut().headers_mut().insert(
+//         header::CONTENT_TYPE,
+//         header::HeaderValue::from_static("validation-error"),
+//     );
+
+//     Ok(ErrorHandlerResponse::Response(res.map_into_left_body()))
+// }
 
 
 #[actix_web::main]
@@ -40,6 +50,9 @@ async fn main() -> std::io::Result<()> {
                 middlewares::valid_incoming_source_checker::valid_incoming_source_checker(&req);
                 srv.call(req)
             })
+            // .wrap(ErrorHandlers::new()
+            //     .handler(StatusCode::BAD_REQUEST, add_error_header),
+            // )
             .configure(configure_route)
     })
     .bind(("127.0.0.1", 8080))?

@@ -25,10 +25,10 @@ impl UserRepository{
 
         results
     }
-    pub fn create_user(&self, pioki_id: &str) -> Result<User, diesel::result::Error>{
+    pub fn create_user(&self, pioki_id: &str,display_name: &str,profile_picture_url: Option<&str>) -> Result<User, diesel::result::Error>{
         use crate::schema::users::dsl::users;
         let connection = &mut self.db_pool.get().unwrap();
-        let new_user = NewUser { pioki_id,is_active: true };
+        let new_user = NewUser { pioki_id,oauth_display_name: display_name,is_active: true,oauth_profile_picture:  profile_picture_url};
 
         diesel::insert_into(users::table())
             .values(&new_user)
