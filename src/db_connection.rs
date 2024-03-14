@@ -12,7 +12,8 @@ pub fn get_connection_pool() -> DbPool {
     let manager = ConnectionManager::<PgConnection>::new(database_url);
 
     Pool::builder()
-        .max_size(5)
+        .max_size(10)
+        .min_idle(Some(2))
         .build(manager)
         .expect("Failed to create connection Pool.")
 }
