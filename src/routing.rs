@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use actix_web::web;
 use crate::{db_connection::get_connection_pool, repository, services::{friends::{list_friend, list_pending_friend_requests, send_friend_request}, users::{create_user, get_users}}};
 
@@ -7,18 +9,16 @@ pub struct AppState{
 
 pub fn configure_route(cfg: &mut web::ServiceConfig) {
     let pool: r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::prelude::PgConnection>> = get_connection_pool();
-    // let db_pool_data = web::Data::new(
-    //     pool.clone()
-    // );
+    let db_pool: Rc<r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::prelude::PgConnection>>> = Rc::new(pool);
     let app_state: web::Data<AppState> = web::Data::new(AppState{
         suspicious: false
     });
     let user_repository = repository::users::UserRepository{
-        db_pool: pool.clone()
+        db_pool:Rc::clone(&db_pool)
     };
     let user_repository_web_data = web::Data::new(user_repository.clone());
     let friend_repository = web::Data::new(repository::friends::FriendRepository{
-        db_pool: pool.clone(),
+        db_pool:Rc::clone(&db_pool),
         user_repository: user_repository.clone()
     });
     cfg.app_data(app_state).app_data(user_repository_web_data).app_data(friend_repository); // .clone?

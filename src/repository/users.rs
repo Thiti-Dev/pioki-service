@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use diesel::associations::HasTable;
 use diesel::SelectableHelper;
 use diesel::prelude::*;
@@ -10,7 +12,7 @@ use crate::models::User;
 
 #[derive(Clone)]
 pub struct UserRepository{
-    pub db_pool: DbPool,
+    pub db_pool: Rc<r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::prelude::PgConnection>>>,
 }
 
 impl UserRepository{

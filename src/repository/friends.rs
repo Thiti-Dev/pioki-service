@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, collections::HashMap, ops::Deref};
+use std::{borrow::Borrow, collections::HashMap, ops::Deref, rc::Rc};
 
 use diesel::{associations::HasTable, prelude::*, sql_query, sql_types::Text};
 use crate::{db_connection::DbPool, models::{Friend, User}, schema::users};
@@ -6,7 +6,7 @@ use crate::{db_connection::DbPool, models::{Friend, User}, schema::users};
 use super::users::UserRepository;
 
 pub struct FriendRepository{
-    pub db_pool: DbPool,
+    pub db_pool: Rc<r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::prelude::PgConnection>>>,
     pub user_repository: UserRepository
 }
 
@@ -54,8 +54,6 @@ impl FriendRepository{
     }
 
     pub fn list_friend_of_user(&self,user_id: &str) -> Result<Vec<Friend>, diesel::result::Error>{
-        use crate::schema::friends::dsl::*;
-
         let connection = &mut self.db_pool.get().unwrap();
         // Join the friends table with itself to find mutual friendships
 
