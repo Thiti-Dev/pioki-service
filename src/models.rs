@@ -49,3 +49,23 @@ pub struct Friend {
     
     pub updated_at: Option<NaiveDateTime>,
 }
+
+
+#[derive(Queryable, Selectable, Insertable,Serialize,QueryableByName,Clone,PartialEq)]
+#[diesel(table_name = crate::schema::posts)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct Post {
+    pub id: i32,
+
+    pub creator_id: String,
+
+    pub origin_quota_limit: i32,
+
+    pub quota_left: i32,
+
+    pub content: String,
+
+    pub created_at: NaiveDateTime,
+    
+    pub updated_at: NaiveDateTime,
+}

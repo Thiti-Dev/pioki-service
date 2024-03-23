@@ -15,6 +15,19 @@ diesel::table! {
 }
 
 diesel::table! {
+    posts (id) {
+        id -> Int4,
+        #[max_length = 32]
+        creator_id -> Varchar,
+        origin_quota_limit -> Int4,
+        quota_left -> Int4,
+        content -> Text,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     users (id) {
         id -> Int4,
         #[max_length = 32]
@@ -31,5 +44,6 @@ diesel::table! {
 
 diesel::allow_tables_to_appear_in_same_query!(
     friends,
+    posts,
     users,
 );
