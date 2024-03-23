@@ -18,3 +18,8 @@ pub struct CreateUserDTO {
     #[validate(url(message = "The url is invalid"))]
     pub oauth_profile_picture: Option<String>
 }
+
+#[derive(Deserialize, Debug)]
+pub struct SendFriendRequestParams {
+    pub send_to_user_id: String,
+}

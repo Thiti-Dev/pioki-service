@@ -8,6 +8,7 @@ use crate::models::NewUser;
 use crate::models::User;
 
 
+#[derive(Clone)]
 pub struct UserRepository{
     pub db_pool: DbPool,
 }
@@ -25,6 +26,19 @@ impl UserRepository{
 
         results
     }
+    pub fn get_users_from_ids(&self, ids: &[String]) -> Vec<User>{
+        use crate::schema::users::dsl::*;
+        let connection = &mut self.db_pool.get().unwrap();
+
+        let results = users
+            // .limit(5)
+            .select(User::as_select())
+            .filter(pioki_id.eq_any(ids))
+            .load(connection)
+            .expect("Error getting user from ids");
+
+        results
+    }
     pub fn create_user(&self, pioki_id: &str,display_name: &str,profile_picture_url: Option<&str>) -> Result<User, diesel::result::Error>{
         use crate::schema::users::dsl::users;
         let connection = &mut self.db_pool.get().unwrap();
@@ -34,5 +48,16 @@ impl UserRepository{
             .values(&new_user)
             .returning(User::as_returning())
             .get_result(connection)
+    }
+    pub fn get_user(&self, user_pioki_id: &str) -> Result<Option<User>, diesel::result::Error>{
+        use crate::schema::users::dsl::*;
+        let connection = &mut self.db_pool.get().unwrap();
+
+        users
+            .filter(pioki_id.eq(user_pioki_id))
+            .select(User::as_select())
+            .first(connection)
+            .optional()
+            
     }
 }

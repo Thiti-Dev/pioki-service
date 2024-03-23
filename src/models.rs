@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use serde::Serialize;
 
 
-#[derive(Queryable, Selectable, Insertable,Serialize)]
+#[derive(Queryable, Selectable, Insertable,Serialize,Clone)]
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct User {
@@ -31,4 +31,21 @@ pub struct NewUser<'a> {
     pub oauth_display_name: &'a str,
     pub oauth_profile_picture: Option<&'a str>,
     pub is_active: bool,
+}
+
+#[derive(Queryable, Selectable, Insertable,Serialize,QueryableByName,Clone)]
+#[diesel(table_name = crate::schema::friends)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct Friend {
+    pub pioki_id: String,
+
+    pub pioki_friend_id: String,
+
+    pub is_blocked: bool,
+
+    pub aka: Option<String>,
+
+    pub created_at: Option<NaiveDateTime>,
+    
+    pub updated_at: Option<NaiveDateTime>,
 }
