@@ -1,6 +1,6 @@
 use actix_web::{web::{Data, Path, ReqData}, HttpRequest, HttpResponse, Responder};
 
-use crate::{dtos::{friends::PendingFriendResponseDTO, users::SendFriendRequestParams, ResponseToUserEnd}, middlewares::{valid_incoming_source_checker::PortalAuthenticated, PIOKIIdentifierData}, repository};
+use crate::{dtos::{friends::{ListFriendResponseDTO, PendingFriendResponseDTO}, users::SendFriendRequestParams, ResponseToUserEnd}, middlewares::{valid_incoming_source_checker::PortalAuthenticated, PIOKIIdentifierData}, repository};
 
 pub async fn send_friend_request(
     _: HttpRequest,
@@ -82,7 +82,15 @@ pub async fn list_friend(
     match identifier_data{
         Some(identifier) => {
             match friend_repository.list_friend_of_user(&identifier.id){
-                Ok(res) => HttpResponse::Ok().json(res),
+                Ok(res) => {
+                    let res = res.iter().map(|ele| ListFriendResponseDTO{
+                        id: ele.1.id,
+                        oauth_display_name: ele.1.oauth_display_name.to_owned(),
+                        oauth_profile_picture: ele.1.oauth_profile_picture.to_owned(),
+                        pioki_id: ele.0.pioki_friend_id.to_owned()
+                    }).collect::<Vec<ListFriendResponseDTO>>();
+                    HttpResponse::Ok().json(res)                    
+                },
                 Err(e) => {
                     println!("{}", e.to_string());
                     return HttpResponse::BadGateway().body("Bad incoming source")

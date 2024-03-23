@@ -53,7 +53,7 @@ impl FriendRepository{
         }
     }
 
-    pub fn list_friend_of_user(&self,user_id: &str) -> Result<Vec<Friend>, diesel::result::Error>{
+    pub fn list_friend_of_user(&self,user_id: &str) -> Result<Vec<(Friend, User)>, diesel::result::Error>{
         let connection = &mut self.db_pool.get().unwrap();
         // Join the friends table with itself to find mutual friendships
 
@@ -64,9 +64,20 @@ impl FriendRepository{
             WHERE f1.pioki_id = '{}'
         "
         ,user_id))
-        // .bind::<Text,_>(user_id)
         .get_results::<Friend>(connection);
 
-        friends_query
+        match friends_query{
+            Ok(friends) => {
+                let friend_ids = friends.iter().map(|friend| friend.pioki_id.to_string()).collect::<Vec<String>>();
+                let users = self.user_repository.get_users_from_ids(&friend_ids);
+                let mut mapped_user_by_id = HashMap::new() as HashMap<String, User>;
+                users.iter().for_each(|user| {
+                    mapped_user_by_id.insert(user.pioki_id.to_string(), user.clone());
+                });
+                let res = friends.iter().map( move |friend| (friend.clone(), mapped_user_by_id.get(&String::from(friend.pioki_id.to_string())).unwrap().clone())).collect::<Vec<(Friend,User)>>();
+                return Ok(res)
+            },
+            Err(_) => todo!(),
+        }
     }
 }
