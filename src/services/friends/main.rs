@@ -1,20 +1,19 @@
 use actix_web::{web::{Data, Path, ReqData}, HttpRequest, HttpResponse, Responder};
 
-use crate::{dtos::{friends::{ListFriendResponseDTO, PendingFriendResponseDTO}, users::SendFriendRequestParams, ResponseToUserEnd}, middlewares::{valid_incoming_source_checker::PortalAuthenticated, PIOKIIdentifierData}, repository};
+use crate::{domains::repositories::repositories::Repositories, dtos::{friends::{ListFriendResponseDTO, PendingFriendResponseDTO}, users::SendFriendRequestParams, ResponseToUserEnd}, middlewares::{valid_incoming_source_checker::PortalAuthenticated, PIOKIIdentifierData}, repository};
 
 pub async fn send_friend_request(
     _: HttpRequest,
     param: Path<SendFriendRequestParams>,
     identifier_data: Option<ReqData<PIOKIIdentifierData>>,
-    user_repository: Data<repository::users::UserRepository>,
-    friend_repository: Data<repository::friends::FriendRepository>,
+    repositories: Data<Repositories>,
     _:PortalAuthenticated) -> impl Responder {
         
     match identifier_data{
         Some(identifier) => {
-            match user_repository.get_user(&param.send_to_user_id){
+            match repositories.user_repository.get_user(&param.send_to_user_id){
                 Ok(_user) => match _user{
-                    Some(_) => match friend_repository.create_friend_request(&identifier.id, &param.send_to_user_id){
+                    Some(_) => match repositories.friend_repository.create_friend_request(&identifier.id, &param.send_to_user_id){
                         Ok(created_friend_request) => HttpResponse::Ok().json(created_friend_request),
                         //insert or update on table "friends" violates foreign key constraint "friends_pioki_id_fkey"
                         Err(e) => match e {
@@ -48,12 +47,12 @@ pub async fn send_friend_request(
 pub async fn list_pending_friend_requests(
     _: HttpRequest,
     identifier_data: Option<ReqData<PIOKIIdentifierData>>,
-    friend_repository: Data<repository::friends::FriendRepository>,
+    repositories: Data<Repositories>,
     _:PortalAuthenticated) -> impl Responder {
 
     match identifier_data{
         Some(identifier) => {
-            match friend_repository.list_pending_friend_request(&identifier.id){
+            match repositories.friend_repository.list_pending_friend_request(&identifier.id){
                 Ok(res) => {
                     let res = res.iter().map(|ele| PendingFriendResponseDTO{
                         id: ele.1.id,
@@ -77,11 +76,11 @@ pub async fn list_pending_friend_requests(
 pub async fn list_friend(
     _: HttpRequest ,
     identifier_data: Option<ReqData<PIOKIIdentifierData>>,
-    friend_repository: Data<repository::friends::FriendRepository>,
+    repositories: Data<Repositories>,
     _:PortalAuthenticated) -> impl Responder {
     match identifier_data{
         Some(identifier) => {
-            match friend_repository.list_friend_of_user(&identifier.id){
+            match repositories.friend_repository.list_friend_of_user(&identifier.id){
                 Ok(res) => {
                     let res = res.iter().map(|ele| ListFriendResponseDTO{
                         id: ele.1.id,

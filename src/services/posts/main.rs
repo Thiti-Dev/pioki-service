@@ -1,17 +1,17 @@
 use actix_web::{web::{Data, Path, ReqData}, HttpRequest, HttpResponse, Responder};
 
-use crate::{domains::inputs::posts::PostLookupWhereClause, dtos::{posts::PostResponseeDTO, users::UserIdParams}, middlewares::{valid_incoming_source_checker::PortalAuthenticated, PIOKIIdentifierData}, repository};
+use crate::{domains::{inputs::posts::PostLookupWhereClause, repositories::repositories::Repositories}, dtos::{posts::PostResponseeDTO, users::UserIdParams}, middlewares::{valid_incoming_source_checker::PortalAuthenticated, PIOKIIdentifierData}, repository};
 
 pub async fn list_user_posts(
     _: HttpRequest,
     param: Path<UserIdParams>,
     identifier_data: Option<ReqData<PIOKIIdentifierData>>,
-    post_repository: Data<repository::posts::PostRepository>,
+    repositories: Data<Repositories>,
     _:PortalAuthenticated) -> impl Responder {
 
     match identifier_data{
         Some(identifier) => {
-            match post_repository.find_all(Some(PostLookupWhereClause{user_id: Some(param.user_id.to_string())})){
+            match repositories.post_repository.find_all(Some(PostLookupWhereClause{user_id: Some(param.user_id.to_string())})){
                 Ok(posts) => {
                     println!("{}", posts.len());
                     let res = posts.iter().map(|post| PostResponseeDTO{
