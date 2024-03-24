@@ -15,6 +15,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    post_keepers (id) {
+        id -> Int4,
+        #[max_length = 32]
+        pioki_id -> Varchar,
+        post_id -> Int4,
+        pass_along_at -> Nullable<Timestamp>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     posts (id) {
         id -> Int4,
         #[max_length = 32]
@@ -42,8 +54,11 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(post_keepers -> posts (post_id));
+
 diesel::allow_tables_to_appear_in_same_query!(
     friends,
+    post_keepers,
     posts,
     users,
 );

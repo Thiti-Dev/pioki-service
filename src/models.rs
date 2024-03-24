@@ -69,3 +69,29 @@ pub struct Post {
     
     pub updated_at: NaiveDateTime,
 }
+
+#[derive(Queryable, Selectable, Insertable,Serialize,QueryableByName,Clone,PartialEq)]
+#[diesel(table_name = crate::schema::post_keepers)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct PostKeeper {
+    pub id: i32,
+
+    pub pioki_id: String,
+
+    pub post_id: i32,
+
+    pub pass_along_at: Option<NaiveDateTime>,
+
+    pub created_at: NaiveDateTime,
+    
+    pub updated_at: NaiveDateTime,
+}
+
+
+#[derive(Insertable)]
+#[diesel(table_name = crate::schema::post_keepers)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct NewPostKeeper<'a> {
+    pub pioki_id: &'a str,
+    pub post_id: i32,
+}
