@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::users::UserResponseDTO;
 
@@ -15,4 +15,9 @@ pub struct PostResponseeDTO{
     pub updated_at: NaiveDateTime,
 
     pub user: UserResponseDTO
+}
+
+#[derive(Deserialize, Debug)]
+pub struct PostIdParams {
+    pub post_id: String,
 }

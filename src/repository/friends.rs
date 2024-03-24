@@ -5,6 +5,7 @@ use crate::{db_connection::DbPool, models::{Friend, User}, schema::users};
 
 use super::users::UserRepository;
 
+#[derive(Clone)]
 pub struct FriendRepository{
     pub db_pool: Rc<r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::prelude::PgConnection>>>,
     pub user_repository: UserRepository
