@@ -12,7 +12,10 @@ pub struct CreatePostDTO {
     pub quota_limit: u32,
 
     #[validate(url(message = "The url is invalid"))]
-    pub oauth_profile_picture: Option<String>
+    pub oauth_profile_picture: Option<String>,
+
+    #[validate(length(min = 3,max = 50, message = "Should have atleast 3 characters and at most 50 characters"))]
+    pub spoiler_header: Option<String>
 }
 
 #[derive(Serialize)]
@@ -20,7 +23,8 @@ pub struct PostResponseeDTO{
     // #[serde(rename = "user_id")]
     pub id:i32,
     pub creator_id: String,
-    pub content: String,
+    pub spoiler_header: Option<String>,
+    pub content: Option<String>,
     pub origin_quota_limit: i32,
     pub quota_left: i32,
     pub created_at: NaiveDateTime,

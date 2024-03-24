@@ -13,15 +13,15 @@ pub async fn list_user_posts(
         Some(identifier) => {
             match repositories.post_repository.find_all(Some(PostLookupWhereClause{user_id: Some(param.user_id.to_string())})){
                 Ok(posts) => {
-                    println!("{}", posts.len());
                     let res = posts.iter().map(|post| PostResponseeDTO{
                         id: post.0.id,
                         creator_id: post.0.creator_id.to_owned(),
                         origin_quota_limit: post.0.origin_quota_limit,
                         quota_left: post.0.quota_left,
-                        content: post.0.content.to_owned(),
+                        content: None, //post.0.content.to_owned()
                         created_at: post.0.created_at,
                         updated_at: post.0.updated_at,
+                        spoiler_header: post.0.spoiler_header.clone(),
                         user: crate::dtos::users::UserResponseDTO { id: post.1.id, pioki_id: post.1.pioki_id.to_owned(), is_active: post.1.is_active, created_at: post.1.created_at }
 
                     }).collect::<Vec<PostResponseeDTO>>();
@@ -78,8 +78,9 @@ pub async fn keep_post(
                     Ok(pk) => HttpResponse::Ok().json(pk),
                     Err(e) => match e {
                         repository::posts::PostKeepingError::AlreadyInteractedError => HttpResponse::BadRequest().json(ResponseToUserEnd::<()>::only_this_message("You've once interacted with this post already")),
-                        repository::posts::PostKeepingError::RollbackError => HttpResponse::BadRequest().json(ResponseToUserEnd::<()>::only_this_message("Lost the chance to keep post due to race condition"))
-                        ,
+                        repository::posts::PostKeepingError::RollbackError => HttpResponse::BadRequest().json(ResponseToUserEnd::<()>::only_this_message("Lost the chance to keep post due to race condition")),
+                        repository::posts::PostKeepingError::NoMoreQuota => HttpResponse::BadRequest().json(ResponseToUserEnd::<()>::only_this_message("Quota has been already depleted")),
+                        repository::posts::PostKeepingError::DatabaseError(_) => HttpResponse::InternalServerError().json(ResponseToUserEnd::<()>::only_this_message("Something has gone wrong with the database")),
                     },
                 }
             }else{

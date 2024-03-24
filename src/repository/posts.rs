@@ -13,7 +13,17 @@ use crate::models::{NewPost, NewPostKeeper, Post, PostKeeper, User};
 
 pub enum PostKeepingError{
     AlreadyInteractedError,
-    RollbackError
+    RollbackError,
+    NoMoreQuota,
+    DatabaseError(String)
+}
+
+impl From<diesel::result::Error> for PostKeepingError {
+    fn from(err: diesel::result::Error) -> Self {
+        // Here you can convert the diesel error into your custom error
+        // This is just a simple example, adjust it according to your needs
+        PostKeepingError::DatabaseError(err.to_string())
+    }
 }
 
 #[derive(Clone)]
@@ -60,7 +70,8 @@ impl PostRepository{
             content: dto.content,
             creator_id: user_id,
             origin_quota_limit: dto.quota_limit as i32,
-            quota_left: dto.quota_limit as i32
+            quota_left: dto.quota_limit as i32,
+            spoiler_header: dto.spoiler_header
         })
         .returning(Post::as_returning())
         .get_result::<Post>(connection)
@@ -87,7 +98,7 @@ impl PostRepository{
         }
 
 
-        let transaction_result = connection.transaction::<_, DieselError, _>(|conn| {
+        let transaction_result = connection.transaction::<_, PostKeepingError, _>(|conn| {
 
             let post_res: Result<Post,diesel::result::Error> = posts.select(Post::as_select())
             .find(post_id)
@@ -100,7 +111,7 @@ impl PostRepository{
                     let count_res: Result<i64,diesel::result::Error> = post_keepers.select(count_star()).filter(post_id_col.eq(post_id).and(pass_along_at.is_null())).first::<i64>(conn);
                     if let Ok(keep_count) = count_res{
                         if keep_count as i32 >= post.origin_quota_limit{
-                            return Err(DieselError::RollbackTransaction) // could be any error tho, but i am not going to extract later . . . as I will always determine this failure by out-of-quota case
+                            return Err(PostKeepingError::NoMoreQuota) // could be any error tho, but i am not going to extract later . . . as I will always determine this failure by out-of-quota case
                         }
 
                         // post is keep-able for now
@@ -116,20 +127,20 @@ impl PostRepository{
                         // lastly decrease the quota left
                         let quota_updation: Result<_, _> = diesel::update(posts.find(post_id)).set(quota_left.eq(post.origin_quota_limit - (keep_count as i32 + 1))).execute(conn); // post.origin_quota_limit - (keep_count as i32 + 1) for re-stamping intregity by the actual counted result
                         if let Err(_) = quota_updation{
-                            return Err(DieselError::RollbackTransaction)
+                            return Err(PostKeepingError::RollbackError)
                         }
 
                         if let Ok(pk_res) = pk_insertion{
                             return Ok(pk_res)
                         }else{
-                            return Err(DieselError::RollbackTransaction)
+                            return Err(PostKeepingError::RollbackError)
                         }
                     }else{
                         // If couldn't count for some reason
-                        return Err(DieselError::RollbackTransaction)
+                        return Err(PostKeepingError::RollbackError)
                     }
                 },
-                Err(_) => return Err(DieselError::RollbackTransaction),
+                Err(_) => return Err(PostKeepingError::RollbackError),
             }
         });
 
@@ -137,8 +148,8 @@ impl PostRepository{
             Ok(res) => {
                 Ok(res)
             },
-            Err(_) => {
-                Err(PostKeepingError::RollbackError)
+            Err(e) => {
+                Err(e) // forward the error
             },
         }
     }
