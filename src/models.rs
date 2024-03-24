@@ -51,7 +51,7 @@ pub struct Friend {
 }
 
 
-#[derive(Queryable, Selectable, Insertable,Serialize,QueryableByName,Clone,PartialEq)]
+#[derive(Queryable, Selectable, Insertable,Serialize,QueryableByName,Clone,PartialEq, Default)]
 #[diesel(table_name = crate::schema::posts)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Post {
@@ -68,6 +68,19 @@ pub struct Post {
     pub created_at: NaiveDateTime,
     
     pub updated_at: NaiveDateTime,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = crate::schema::posts)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct NewPost {
+    pub creator_id: String,
+
+    pub origin_quota_limit: i32,
+
+    pub quota_left: i32,
+
+    pub content: String,
 }
 
 #[derive(Queryable, Selectable, Insertable,Serialize,QueryableByName,Clone,PartialEq)]

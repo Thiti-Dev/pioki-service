@@ -8,7 +8,8 @@ use diesel::associations::HasTable;
 use diesel::SelectableHelper;
 
 use crate::domains::inputs::posts::PostLookupWhereClause;
-use crate::models::{NewPostKeeper, Post, PostKeeper, User};
+use crate::dtos::posts::CreatePostDTO;
+use crate::models::{NewPost, NewPostKeeper, Post, PostKeeper, User};
 
 pub enum PostKeepingError{
     AlreadyInteractedError,
@@ -47,6 +48,22 @@ impl PostRepository{
             .load::<(Post, User)>(connection)
         }
 
+    }
+
+    pub fn create_post(&self, user_id: String, dto: CreatePostDTO) -> Result<Post, diesel::result::Error>{
+        use crate::schema::posts::dsl::*;
+        let connection = &mut self.db_pool.get().unwrap();
+
+
+         diesel::insert_into(posts::table())
+        .values(&NewPost{
+            content: dto.content,
+            creator_id: user_id,
+            origin_quota_limit: dto.quota_limit as i32,
+            quota_left: dto.quota_limit as i32
+        })
+        .returning(Post::as_returning())
+        .get_result::<Post>(connection)
     }
 
     fn check_if_post_is_already_kept_by_user(&self, user_id: String, post_id: i32) -> bool{

@@ -1,6 +1,6 @@
 use actix_web::{web::{Data, Path, ReqData}, HttpRequest, HttpResponse, Responder};
 
-use crate::{domains::{inputs::posts::PostLookupWhereClause, repositories::repositories::Repositories}, dtos::{posts::{PostIdParams, PostResponseeDTO}, users::UserIdParams, ResponseToUserEnd}, middlewares::{valid_incoming_source_checker::PortalAuthenticated, PIOKIIdentifierData}, repository};
+use crate::{domains::{inputs::posts::PostLookupWhereClause, repositories::repositories::Repositories}, dtos::{posts::{CreatePostDTO, PostIdParams, PostResponseeDTO}, users::UserIdParams, ResponseToUserEnd}, middlewares::{valid_incoming_source_checker::PortalAuthenticated, PIOKIIdentifierData}, repository, utils::validation::{self, core::throw_error_response_based_on_validation_error_kind}};
 
 pub async fn list_user_posts(
     _: HttpRequest,
@@ -35,6 +35,30 @@ pub async fn list_user_posts(
         },
         None => HttpResponse::BadGateway().body("Bad incoming source"),
     }
+}
+
+pub async fn create_post(
+    _: HttpRequest,
+    body: String,
+    identifier_data: Option<ReqData<PIOKIIdentifierData>>,
+    repositories: Data<Repositories>,
+    _:PortalAuthenticated) -> impl Responder {
+
+    if identifier_data.is_none(){
+        return HttpResponse::BadGateway().body("Bad incoming source")
+    }
+
+    let dto = validation::core::serialize_body_into_struct::<CreatePostDTO>(&body);
+    match dto{
+        Ok(input) => {
+            match repositories.post_repository.create_post(identifier_data.unwrap().id.to_string(), input){
+                Ok(created_post) => HttpResponse::Ok().json(ResponseToUserEnd::only_this_message("success").with_data(created_post)),
+                Err(e) => HttpResponse::InternalServerError().json(ResponseToUserEnd::<()>::only_this_message(e.to_string().as_str())),
+            }
+        },
+        Err(ekind) => throw_error_response_based_on_validation_error_kind(ekind)
+    }
+    
 }
 
 
