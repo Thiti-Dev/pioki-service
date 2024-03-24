@@ -25,7 +25,10 @@ pub async fn list_user_posts(
                         user: crate::dtos::users::UserResponseDTO { id: post.1.id, pioki_id: post.1.pioki_id.to_owned(), is_active: post.1.is_active, created_at: post.1.created_at }
 
                     }).collect::<Vec<PostResponseeDTO>>();
-                    HttpResponse::Ok().json(res)
+                    let mut res_to_end = ResponseToUserEnd::default();
+                    res_to_end.message = Some("success".into());
+                    res_to_end.data = Some(res);
+                    HttpResponse::Ok().json(res_to_end)
                 },
                 Err(_) => todo!(),
             }
@@ -50,8 +53,8 @@ pub async fn keep_post(
                 match post_keeping_opearion{
                     Ok(pk) => HttpResponse::Ok().json(pk),
                     Err(e) => match e {
-                        repository::posts::PostKeepingError::AlreadyInteractedError => HttpResponse::BadRequest().body("You've once interacted with this post already"),
-                        repository::posts::PostKeepingError::RollbackError => HttpResponse::BadRequest().body("Lost the chance to keep post due to race condition")
+                        repository::posts::PostKeepingError::AlreadyInteractedError => HttpResponse::BadRequest().json(ResponseToUserEnd::<()>::only_this_message("You've once interacted with this post already")),
+                        repository::posts::PostKeepingError::RollbackError => HttpResponse::BadRequest().json(ResponseToUserEnd::<()>::only_this_message("Lost the chance to keep post due to race condition"))
                         ,
                     },
                 }

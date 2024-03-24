@@ -71,9 +71,10 @@ pub fn throw_error_response_based_on_validation_error_kind(ekind: ValidationErro
         ValidationErrorKind::ValidationError(e) => {
             let json_string = serde_json::to_string(&e.errors.field_errors()).unwrap();
             let errors = serde_json::from_str(&json_string).unwrap();
-            let mut res = ResponseToUserEnd::default();
+            let mut res = ResponseToUserEnd::<()>::default();
             res.validation_errors_by_field = errors;
             res.r#type = Some("Validation error".to_string());
+            res.data = None;
             // HttpResponse::BadRequest().content_type("application/json").body(json_string)
             HttpResponse::BadRequest().json(res)
         }

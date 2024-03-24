@@ -3,6 +3,7 @@ use actix_web::{HttpRequest, HttpResponse, Responder};
 
 use crate::domains::repositories::repositories::Repositories;
 use crate::dtos::users::CreateUserDTO;
+use crate::dtos::ResponseToUserEnd;
 use crate::middlewares::valid_incoming_source_checker::PortalAuthenticated;
 use crate::middlewares::PIOKIIdentifierData;
 use crate::repository;
@@ -32,7 +33,7 @@ pub async fn create_user(_: HttpRequest,body: String ,identifier_data: Option<Re
                 Some(identifier) => {
                     // if identifier found from header, meaning that this came from pioki-frontend
                     match repositories.user_repository.create_user(identifier.id.to_string().as_str(),&create_user_dto.oauth_display_name[..if create_user_dto.oauth_display_name.len() > 32 {32} else {create_user_dto.oauth_display_name.len()}],create_user_dto.oauth_profile_picture.as_deref()){
-                        Ok(created_user) => HttpResponse::Created().json(created_user),
+                        Ok(created_user) => HttpResponse::Created().json(ResponseToUserEnd::only_this_message("success").with_data(created_user)),
                         Err(diesel::result::Error::DatabaseError(
                             diesel::result::DatabaseErrorKind::UniqueViolation,
                             _,

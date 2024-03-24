@@ -18,7 +18,7 @@ pub async fn send_friend_request(
                         //insert or update on table "friends" violates foreign key constraint "friends_pioki_id_fkey"
                         Err(e) => match e {
                             diesel::result::Error::DatabaseError(dberror, _) => match dberror{
-                                diesel::result::DatabaseErrorKind::UniqueViolation => HttpResponse::BadRequest().json(ResponseToUserEnd::only_this_message("Request is already in pending state")),
+                                diesel::result::DatabaseErrorKind::UniqueViolation => HttpResponse::BadRequest().json(ResponseToUserEnd::<()>::only_this_message("Request is already in pending state")),
                                 diesel::result::DatabaseErrorKind::ForeignKeyViolation => {
                                     if e.to_string().contains("friends_pioki_id_fkey"){
                                         return HttpResponse::BadRequest().body("Your user_id is invalid")
@@ -31,7 +31,7 @@ pub async fn send_friend_request(
                         },
                     },
                     None => {
-                        let mut res = ResponseToUserEnd::default();
+                        let mut res = ResponseToUserEnd::<()>::default();
                         res.message = Some(format!("User with id:\"{}\" doesn't exist", param.send_to_user_id));
                         HttpResponse::NotFound().json(res)
                     }
@@ -61,7 +61,7 @@ pub async fn list_pending_friend_requests(
                         pioki_id: ele.1.pioki_id.to_owned(),
                         requested_at: ele.0.created_at
                     }).collect::<Vec<PendingFriendResponseDTO>>();
-                    HttpResponse::Ok().json(res)
+                    HttpResponse::Ok().json(ResponseToUserEnd::only_this_message("success").with_data(res))
                 },
                 Err(e) => {
                     println!("{}", e.to_string());
@@ -88,7 +88,7 @@ pub async fn list_friend(
                         oauth_profile_picture: ele.1.oauth_profile_picture.to_owned(),
                         pioki_id: ele.0.pioki_friend_id.to_owned()
                     }).collect::<Vec<ListFriendResponseDTO>>();
-                    HttpResponse::Ok().json(res)                    
+                    HttpResponse::Ok().json(ResponseToUserEnd::only_this_message("success").with_data(res))                    
                 },
                 Err(e) => {
                     println!("{}", e.to_string());
