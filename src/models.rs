@@ -59,6 +59,8 @@ pub struct Post {
 
     pub creator_id: String,
 
+    pub spoiler_header: Option<String>,
+
     pub origin_quota_limit: i32,
 
     pub quota_left: i32,
@@ -75,6 +77,8 @@ pub struct Post {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct NewPost {
     pub creator_id: String,
+
+    pub spoiler_header: Option<String>,
 
     pub origin_quota_limit: i32,
 

@@ -31,6 +31,8 @@ diesel::table! {
         id -> Int4,
         #[max_length = 32]
         creator_id -> Varchar,
+        #[max_length = 50]
+        spoiler_header -> Nullable<Varchar>,
         origin_quota_limit -> Int4,
         quota_left -> Int4,
         content -> Text,
