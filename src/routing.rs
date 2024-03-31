@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use actix_web::web;
-use crate::{db_connection::get_connection_pool, domains::repositories::repositories::Repositories, repository, services::{friends::{list_friend, list_pending_friend_requests, send_friend_request}, posts::main::{create_post, keep_post, list_user_posts}, users::{create_user, get_users}}};
+use crate::{db_connection::get_connection_pool, domains::repositories::repositories::Repositories, repository, services::{friends::{list_friend, list_pending_friend_requests, send_friend_request}, posts::main::{create_post, keep_post, list_user_posts}, users::{create_user, get_user, get_users}}};
 
 pub struct AppState{
     pub suspicious: bool
@@ -35,9 +35,16 @@ pub fn configure_route(cfg: &mut web::ServiceConfig) {
     cfg.service(
     web::scope("/api")
         .service(
-            web::resource("/users").
-            route(web::get().to(get_users)) // api/user
-            .route(web::post().to(create_user)) // api/user
+            web::scope("/users")
+            .service(
+                web::resource("")
+                .route(web::get().to(get_users)) // api/user
+                .route(web::post().to(create_user)) // api/user
+            )
+            .service(
+                web::resource("/{user_id}")
+                .route(web::get().to(get_user))
+            )
         )
         .service(
             web::resource("/users/{user_id}/posts").

@@ -1,12 +1,11 @@
-use actix_web::web::{Data, ReqData};
+use actix_web::web::{Data, Path, ReqData};
 use actix_web::{HttpRequest, HttpResponse, Responder};
 
 use crate::domains::repositories::repositories::Repositories;
-use crate::dtos::users::CreateUserDTO;
+use crate::dtos::users::{CreateUserDTO, UserIdParams};
 use crate::dtos::ResponseToUserEnd;
 use crate::middlewares::valid_incoming_source_checker::PortalAuthenticated;
 use crate::middlewares::PIOKIIdentifierData;
-use crate::repository;
 use crate::utils::validation;
 use crate::utils::validation::core::throw_error_response_based_on_validation_error_kind;
 
@@ -51,5 +50,20 @@ pub async fn create_user(_: HttpRequest,body: String ,identifier_data: Option<Re
             }
         },
         Err(ekind) => throw_error_response_based_on_validation_error_kind(ekind)
+    }
+}
+
+pub async fn get_user(_: HttpRequest,body: String,param: Path<UserIdParams>,repositories: Data<Repositories>) -> impl Responder {
+    let user_result = repositories.user_repository.get_user(&param.user_id);
+    
+    match user_result {
+        Ok(user_opt) => {
+            if let Some(user) = user_opt{
+                return HttpResponse::Ok().json(ResponseToUserEnd::only_this_message("success").with_data(user))
+            }else{
+                return HttpResponse::NotFound().json(ResponseToUserEnd::<()>::only_this_message("Not found"))
+            }
+        },
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string())
     }
 }
