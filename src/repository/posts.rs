@@ -98,13 +98,18 @@ impl PostRepository{
         return post_keeper_res
     }
 
-    pub fn get_all_kept_post_from_user(&self, user_id: String) -> Result<Vec<PostKeeper>, diesel::result::Error>{
-        use crate::schema::post_keepers::dsl::{post_keepers,pioki_id};
+    pub fn get_all_kept_post_from_user(&self, user_id: String) -> Result<Vec<(PostKeeper, (Post, User))>, diesel::result::Error>{
+        use crate::schema::posts::dsl::{posts,id as post_id,creator_id};
+        use crate::schema::users::dsl::{pioki_id as user_pioki_id_col,users};
+        use crate::schema::post_keepers::dsl::{post_keepers,pioki_id,post_id as post_id_of_post_keepers,created_at};
         let connection = &mut self.db_pool.get().unwrap();
 
-        let keeps:  Result<Vec<PostKeeper>, diesel::result::Error> = post_keepers.filter(pioki_id.eq(user_id))
-            .select(PostKeeper::as_select())
-            .load::<PostKeeper>(connection);
+        let keeps:  Result<Vec<(PostKeeper, (Post,User))>, diesel::result::Error> = post_keepers
+            .order(created_at.desc())
+            .inner_join(posts.on(post_id.eq(post_id_of_post_keepers)).inner_join(users.on(user_pioki_id_col.eq(creator_id))))
+            .filter(pioki_id.eq(user_id))
+            .select((PostKeeper::as_select(), (Post::as_select(), User::as_select())))
+            .load::<(PostKeeper, (Post,User))>(connection);
 
         keeps
     }

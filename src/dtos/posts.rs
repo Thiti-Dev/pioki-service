@@ -2,6 +2,8 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
+use crate::models::{Post, PostKeeper, User};
+
 use super::users::UserResponseDTO;
 
 #[derive(Deserialize,Debug,Validate)]
@@ -36,4 +38,12 @@ pub struct PostResponseeDTO{
 #[derive(Deserialize, Debug)]
 pub struct PostIdParams {
     pub post_id: String,
+}
+
+#[derive(Serialize)]
+pub struct ListKeptPostsResponseDTO{
+    // #[serde(rename = "user_id")]
+    pub post_data: Post,
+    pub creator_data: User,
+    pub keep_data: PostKeeper,
 }
