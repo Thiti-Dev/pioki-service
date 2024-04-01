@@ -105,10 +105,38 @@ pub struct PostKeeper {
 }
 
 
+#[derive(Queryable, Selectable, Insertable,Serialize,QueryableByName,Clone,PartialEq,Default)]
+#[diesel(table_name = crate::schema::keep_and_pass_along_logs)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct KeepAndPassAlongLog {
+    pub id: i32,
+
+    pub pioki_id: String,
+
+    pub post_id: i32,
+
+    pub is_kept: bool,
+
+    pub created_at: NaiveDateTime,
+    
+    pub updated_at: NaiveDateTime,
+}
+
+
+
 #[derive(Insertable)]
 #[diesel(table_name = crate::schema::post_keepers)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct NewPostKeeper<'a> {
     pub pioki_id: &'a str,
     pub post_id: i32,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = crate::schema::keep_and_pass_along_logs)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct NewKeepAndPassAlongLog {
+    pub pioki_id: String,
+    pub post_id: i32,
+    pub is_kept: bool
 }

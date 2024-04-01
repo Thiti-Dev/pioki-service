@@ -15,6 +15,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    keep_and_pass_along_logs (id) {
+        id -> Int4,
+        #[max_length = 32]
+        pioki_id -> Varchar,
+        post_id -> Int4,
+        is_kept -> Bool,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     post_keepers (id) {
         id -> Int4,
         #[max_length = 32]
@@ -53,13 +65,16 @@ diesel::table! {
         is_active -> Bool,
         created_at -> Timestamp,
         updated_at -> Timestamp,
+        coin_amount -> Numeric,
     }
 }
 
+diesel::joinable!(keep_and_pass_along_logs -> posts (post_id));
 diesel::joinable!(post_keepers -> posts (post_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     friends,
+    keep_and_pass_along_logs,
     post_keepers,
     posts,
     users,

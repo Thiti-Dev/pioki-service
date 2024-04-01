@@ -3,13 +3,17 @@ use std::rc::Rc;
 use diesel::dsl::count_star;
 use diesel::prelude::*;
 use diesel::result::Error as DieselError;
+use bigdecimal::{BigDecimal, FromPrimitive};
+
 
 use diesel::associations::HasTable;
+use diesel::sql_types::Numeric;
 use diesel::SelectableHelper;
+use tokio::task;
 
 use crate::domains::inputs::posts::PostLookupWhereClause;
 use crate::dtos::posts::CreatePostDTO;
-use crate::models::{NewPost, NewPostKeeper, Post, PostKeeper, User};
+use crate::models::{KeepAndPassAlongLog, NewKeepAndPassAlongLog, NewPost, NewPostKeeper, Post, PostKeeper, User};
 
 pub enum PostKeepingError{
     AlreadyInteractedError,
@@ -77,11 +81,29 @@ impl PostRepository{
         .get_result::<Post>(connection)
     }
 
-    fn check_if_post_is_already_kept_by_user(&self, user_id: String, post_id: i32) -> bool{
+    fn _check_if_post_is_already_kept_by_user_old(&self, user_id: String, post_id: i32) -> bool{
         use crate::schema::post_keepers::dsl::{post_id as post_id_col,post_keepers,pioki_id};
         let connection = &mut self.db_pool.get().unwrap();
 
         let count: i64 = post_keepers.select(count_star()).filter(pioki_id.eq(user_id).and(post_id_col.eq(post_id))).first::<i64>(connection).expect("failed getting count by check_if_post_is_already_kept_by_user");
+        
+        return count != 0
+    }
+
+    fn check_if_post_is_already_kept_by_user(&self, user_id: String, post_id: i32) -> bool{
+        use crate::schema::keep_and_pass_along_logs::dsl::{keep_and_pass_along_logs,pioki_id,post_id as post_id_col,is_kept};
+        let connection = &mut self.db_pool.get().unwrap();
+
+        let count: i64 = keep_and_pass_along_logs.select(count_star()).filter(pioki_id.eq(user_id).and(post_id_col.eq(post_id)).and(is_kept.eq(true))).first::<i64>(connection).expect("failed getting count by check_if_post_is_already_kept_by_user");
+        
+        return count != 0
+    }
+
+    fn check_if_user_ever_keep_this_post(&self, user_id: String, post_id: i32) -> bool{
+        use crate::schema::keep_and_pass_along_logs::dsl::{keep_and_pass_along_logs,pioki_id,post_id as post_id_col,is_kept};
+        let connection = &mut self.db_pool.get().unwrap();
+
+        let count: i64 = keep_and_pass_along_logs.select(count_star()).filter(pioki_id.eq(user_id).and(post_id_col.eq(post_id))).first::<i64>(connection).expect("failed getting count by check_if_post_is_already_kept_by_user");
         
         return count != 0
     }
@@ -115,8 +137,10 @@ impl PostRepository{
     }
 
     pub fn keep_post(&self, user_id: String, post_id: i32) -> Result<PostKeeper,PostKeepingError>{
+        use crate::schema::keep_and_pass_along_logs::dsl::{keep_and_pass_along_logs};
         use crate::schema::post_keepers::dsl::{post_keepers,post_id as post_id_col,pass_along_at};
         use crate::schema::posts::dsl::*;
+        use crate::schema::users::dsl::{users,coin_amount,pioki_id,oauth_display_name};
         let connection = &mut self.db_pool.get().unwrap();
 
         // check first if this user hasn't already kept/already pass along this post
@@ -146,23 +170,40 @@ impl PostRepository{
                         // calling insert here
 
                         let post_keeper_insert_item = NewPostKeeper{pioki_id: &user_id,post_id};
+                        let log_item = NewKeepAndPassAlongLog{pioki_id: user_id.to_string(),post_id,is_kept: true};
 
                         let pk_insertion = diesel::insert_into(post_keepers::table())
                         .values(&post_keeper_insert_item)
                         .returning(PostKeeper::as_returning())
                         .get_result::<PostKeeper>(conn);
 
-                        // lastly decrease the quota left
-                        let quota_updation: Result<_, _> = diesel::update(posts.find(post_id)).set(quota_left.eq(post.origin_quota_limit - (keep_count as i32 + 1))).execute(conn); // post.origin_quota_limit - (keep_count as i32 + 1) for re-stamping intregity by the actual counted result
-                        if let Err(_) = quota_updation{
-                            return Err(PostKeepingError::RollbackError)
+                        
+                        let log_insertion = diesel::insert_into(keep_and_pass_along_logs::table())
+                        .values(&log_item)
+                        .returning(KeepAndPassAlongLog::as_returning())
+                        .get_result::<KeepAndPassAlongLog>(conn);
+
+                        let has_user_kept_this_post_before = self.check_if_user_ever_keep_this_post(user_id.to_string(), post_id);
+                        if !has_user_kept_this_post_before{
+                            // first time keeping this post
+                            // give the point to the post owner
+                            let post_owner_id = post.creator_id.to_string();
+
+                            let coin_updation: Result<_, _> = diesel::update(users.filter(pioki_id.eq(post_owner_id))).set(coin_amount.eq(coin_amount + BigDecimal::from_i8(1).unwrap())).execute(conn);
+                            if coin_updation.is_err(){
+                                return Err(PostKeepingError::RollbackError)
+                            }
                         }
 
-                        if let Ok(pk_res) = pk_insertion{
-                            return Ok(pk_res)
-                        }else{
+                        // lastly decrease the quota left
+                        let quota_updation: Result<_, _> = diesel::update(posts.find(post_id)).set(quota_left.eq(post.origin_quota_limit - (keep_count as i32 + 1))).execute(conn); // post.origin_quota_limit - (keep_count as i32 + 1) for re-stamping intregity by the actual counted result
+                        if quota_updation.is_err() || log_insertion.is_err() || pk_insertion.is_err(){
+                            // if any error happen to quota updating or log_insertion or pk_insertion -> Rollback
+                            // could catch them each right after each operation
+                            // later on this would run concurrently :TODO
                             return Err(PostKeepingError::RollbackError)
                         }
+                        Ok(pk_insertion.unwrap())
                     }else{
                         // If couldn't count for some reason
                         return Err(PostKeepingError::RollbackError)
