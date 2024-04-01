@@ -46,7 +46,7 @@ impl PostRepository{
                 query = query.filter(creator_id.eq(user_id));
             }
 
-            return query
+            return query.order(created_at.desc())
             .inner_join(users.on(pioki_id.eq(creator_id)))
             .select((Post::as_select(), User::as_select()))
             .load::<(Post, User)>(connection)
@@ -96,6 +96,17 @@ impl PostRepository{
             .optional();
 
         return post_keeper_res
+    }
+
+    pub fn get_all_kept_post_from_user(&self, user_id: String) -> Result<Vec<PostKeeper>, diesel::result::Error>{
+        use crate::schema::post_keepers::dsl::{post_keepers,pioki_id};
+        let connection = &mut self.db_pool.get().unwrap();
+
+        let keeps:  Result<Vec<PostKeeper>, diesel::result::Error> = post_keepers.filter(pioki_id.eq(user_id))
+            .select(PostKeeper::as_select())
+            .load::<PostKeeper>(connection);
+
+        keeps
     }
 
     pub fn keep_post(&self, user_id: String, post_id: i32) -> Result<PostKeeper,PostKeepingError>{
