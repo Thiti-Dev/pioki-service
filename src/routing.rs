@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use actix_web::web;
-use crate::{db_connection::get_connection_pool, domains::repositories::repositories::Repositories, repository, services::{friends::{list_friend, list_pending_friend_requests, send_friend_request}, posts::main::{create_post, keep_post, list_user_posts}, users::{create_user, get_user, get_users}}};
+use crate::{db_connection::get_connection_pool, domains::repositories::repositories::Repositories, repository, services::{friends::{list_friend, list_pending_friend_requests, send_friend_request}, posts::main::{check_if_post_is_already_owned, create_post, keep_post, list_user_posts}, users::{create_user, get_user, get_users}}};
 
 pub struct AppState{
     pub suspicious: bool
@@ -45,10 +45,10 @@ pub fn configure_route(cfg: &mut web::ServiceConfig) {
                 web::resource("/{user_id}")
                 .route(web::get().to(get_user))
             )
-        )
-        .service(
-            web::resource("/users/{user_id}/posts").
-            route(web::get().to(list_user_posts))
+            .service(
+                web::resource("/{user_id}/posts")
+                .route(web::get().to(list_user_posts))
+            )
         )
         .service(
             web::resource("/users/{send_to_user_id}/send-friend-request").
@@ -73,6 +73,10 @@ pub fn configure_route(cfg: &mut web::ServiceConfig) {
             .service(
                 web::resource("/{post_id}/keep").
                 route(web::post().to(keep_post)) // api/posts/{post_id}/keep           
+            )
+            .service(
+                web::resource("/{post_id}/is_owned").
+                route(web::get().to(check_if_post_is_already_owned)) // api/posts/{post_id}/keep           
             )
         )
     );

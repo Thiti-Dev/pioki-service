@@ -87,7 +87,7 @@ pub struct NewPost {
     pub content: String,
 }
 
-#[derive(Queryable, Selectable, Insertable,Serialize,QueryableByName,Clone,PartialEq)]
+#[derive(Queryable, Selectable, Insertable,Serialize,QueryableByName,Clone,PartialEq,Default)]
 #[diesel(table_name = crate::schema::post_keepers)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct PostKeeper {

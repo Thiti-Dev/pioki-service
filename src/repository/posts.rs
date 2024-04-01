@@ -86,6 +86,18 @@ impl PostRepository{
         return count != 0
     }
 
+    pub fn is_owned(&self, user_id: String, post_id: i32) -> Result<Option<PostKeeper>, diesel::result::Error>{
+        use crate::schema::post_keepers::dsl::{post_keepers,post_id as post_id_col,pass_along_at,pioki_id};
+        let connection = &mut self.db_pool.get().unwrap();
+
+        let post_keeper_res: Result<Option<PostKeeper>, diesel::result::Error> = post_keepers.select(PostKeeper::as_select())
+            .filter(pioki_id.eq(user_id).and(post_id_col.eq(post_id)))
+            .first::<PostKeeper>(connection)
+            .optional();
+
+        return post_keeper_res
+    }
+
     pub fn keep_post(&self, user_id: String, post_id: i32) -> Result<PostKeeper,PostKeepingError>{
         use crate::schema::post_keepers::dsl::{post_keepers,post_id as post_id_col,pass_along_at};
         use crate::schema::posts::dsl::*;

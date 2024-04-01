@@ -75,7 +75,7 @@ pub async fn keep_post(
             if let Ok(post_id) = i32_post_id {
                 let post_keeping_opearion = repositories.post_repository.keep_post(identifier.id.to_string(),post_id);
                 match post_keeping_opearion{
-                    Ok(pk) => HttpResponse::Ok().json(pk),
+                    Ok(pk) => HttpResponse::Ok().json(ResponseToUserEnd::only_this_message("success").with_data(pk)),
                     Err(e) => match e {
                         repository::posts::PostKeepingError::AlreadyInteractedError => HttpResponse::BadRequest().json(ResponseToUserEnd::<()>::only_this_message("You've once interacted with this post already")),
                         repository::posts::PostKeepingError::RollbackError => HttpResponse::BadRequest().json(ResponseToUserEnd::<()>::only_this_message("Lost the chance to keep post due to race condition")),
@@ -88,5 +88,32 @@ pub async fn keep_post(
             }
         },
         None => HttpResponse::BadGateway().body("Bad incoming source"),
+    }
+}
+
+pub async fn check_if_post_is_already_owned(
+    _: HttpRequest,
+    param: Path<PostIdParams>,
+    identifier_data: Option<ReqData<PIOKIIdentifierData>>,
+    repositories: Data<Repositories>,
+    _:PortalAuthenticated) -> impl Responder {
+
+    if identifier_data.is_none(){
+        return HttpResponse::BadGateway().body("Bad incoming source")
+    }
+
+    let i32_post_id: Result<i32,_> = param.post_id.parse();
+    if let Ok(post_id) = i32_post_id {
+        let post_keep_res = repositories.post_repository.is_owned(identifier_data.unwrap().id.to_string(), post_id);
+        match post_keep_res{
+            Ok(post_keep_opt) => match post_keep_opt{
+                Some(post_keep) => HttpResponse::Ok().json(ResponseToUserEnd::only_this_message("success").with_data(post_keep)),
+                None => HttpResponse::Ok().json(ResponseToUserEnd::<()>::only_this_message("success")),
+            },
+            Err(_) => HttpResponse::InternalServerError().body("Something has gone wrong . . ."),
+        }
+
+    }else{
+        return HttpResponse::BadRequest().body("Invalid post_id in params")
     }
 }
