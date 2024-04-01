@@ -117,3 +117,31 @@ pub async fn check_if_post_is_already_owned(
         return HttpResponse::BadRequest().body("Invalid post_id in params")
     }
 }
+
+pub async fn pass_post(
+    _: HttpRequest,
+    param: Path<PostIdParams>,
+    identifier_data: Option<ReqData<PIOKIIdentifierData>>,
+    repositories: Data<Repositories>,
+    _:PortalAuthenticated) -> impl Responder {
+
+    if identifier_data.is_none(){
+        return HttpResponse::BadGateway().body("Bad incoming source")
+    }
+    
+
+    let i32_post_id: Result<i32,_> = param.post_id.parse();
+    if let Ok(post_id) = i32_post_id {
+        let operation_res = repositories.post_repository.pass_post(identifier_data.unwrap().id.to_string(), post_id);
+        match operation_res{
+            Ok(_) => return HttpResponse::Ok().json(ResponseToUserEnd::<()>::only_this_message("success")),
+            Err(e) => match e{
+                diesel::result::Error::RollbackTransaction => return HttpResponse::BadRequest().json(ResponseToUserEnd::<()>::only_this_message("failed passing along the post")),
+                _ => return HttpResponse::InternalServerError().body("Something has gone wrong . . ."),
+            },
+        }
+    }
+    else{
+        return HttpResponse::BadRequest().body("Invalid post_id in params")
+    }
+}

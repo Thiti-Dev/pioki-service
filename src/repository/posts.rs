@@ -81,7 +81,7 @@ impl PostRepository{
         .get_result::<Post>(connection)
     }
 
-    fn _check_if_post_is_already_kept_by_user_old(&self, user_id: String, post_id: i32) -> bool{
+    fn check_if_post_is_already_kept_by_user(&self, user_id: String, post_id: i32) -> bool{
         use crate::schema::post_keepers::dsl::{post_id as post_id_col,post_keepers,pioki_id};
         let connection = &mut self.db_pool.get().unwrap();
 
@@ -90,7 +90,7 @@ impl PostRepository{
         return count != 0
     }
 
-    fn check_if_post_is_already_kept_by_user(&self, user_id: String, post_id: i32) -> bool{
+    fn _check_if_post_is_already_kept_by_user(&self, user_id: String, post_id: i32) -> bool{
         use crate::schema::keep_and_pass_along_logs::dsl::{keep_and_pass_along_logs,pioki_id,post_id as post_id_col,is_kept};
         let connection = &mut self.db_pool.get().unwrap();
 
@@ -134,6 +134,47 @@ impl PostRepository{
             .load::<(PostKeeper, (Post,User))>(connection);
 
         keeps
+    }
+
+    pub fn pass_post(&self, user_id: String, post_id: i32) -> Result<(), diesel::result::Error>{
+        use crate::schema::post_keepers::dsl::{post_keepers,pioki_id,post_id as post_id_col};
+        use crate::schema::keep_and_pass_along_logs::dsl::keep_and_pass_along_logs;
+        use crate::schema::posts::dsl::{posts,quota_left};
+        let connection = &mut self.db_pool.get().unwrap();
+
+        let tx = connection.transaction::<_,diesel::result::Error,_>(|conn|{
+
+            let removal: QueryResult<usize> = diesel::delete(post_keepers.filter(pioki_id.eq(pioki_id).and(post_id_col.eq(post_id)))).execute(conn);
+            if removal.is_err(){
+                return Err(diesel::result::Error::RollbackTransaction)
+            }
+
+            if removal.unwrap() < 1{
+                return Err(diesel::result::Error::RollbackTransaction)
+            }
+
+            let quota_updation: Result<_, _> = diesel::update(posts.find(post_id)).set(quota_left.eq(quota_left + 1)).execute(conn);
+            if quota_updation.is_err(){
+                return Err(diesel::result::Error::RollbackTransaction)
+            }
+
+
+            let log_item = NewKeepAndPassAlongLog{pioki_id: user_id.to_string(),post_id,is_kept: false};
+            let log_insertion = diesel::insert_into(keep_and_pass_along_logs::table())
+                        .values(&log_item)
+                        .returning(KeepAndPassAlongLog::as_returning())
+                        .get_result::<KeepAndPassAlongLog>(conn);
+
+            if log_insertion.is_err(){
+                return Err(diesel::result::Error::RollbackTransaction)
+            }
+
+
+            
+            return Ok(())
+        });
+
+        tx
     }
 
     pub fn keep_post(&self, user_id: String, post_id: i32) -> Result<PostKeeper,PostKeepingError>{

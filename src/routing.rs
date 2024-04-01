@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use actix_web::web;
-use crate::{db_connection::get_connection_pool, domains::repositories::repositories::Repositories, repository, services::{friends::{list_friend, list_pending_friend_requests, send_friend_request}, me::main::{list_kept_posts, list_kept_post_ids}, posts::main::{check_if_post_is_already_owned, create_post, keep_post, list_user_posts}, users::{create_user, get_user, get_users}}};
+use crate::{db_connection::get_connection_pool, domains::repositories::repositories::Repositories, repository, services::{friends::{list_friend, list_pending_friend_requests, send_friend_request}, me::main::{list_kept_post_ids, list_kept_posts}, posts::main::{check_if_post_is_already_owned, create_post, keep_post, list_user_posts, pass_post}, users::{create_user, get_user, get_users}}};
 
 pub struct AppState{
     pub suspicious: bool
@@ -77,6 +77,10 @@ pub fn configure_route(cfg: &mut web::ServiceConfig) {
             .service(
                 web::resource("/{post_id}/is_owned").
                 route(web::get().to(check_if_post_is_already_owned)) // api/posts/{post_id}/keep           
+            )
+            .service(
+                web::resource("/{post_id}/pass").
+                route(web::post().to(pass_post)) // api/posts/{post_id}/keep           
             )
         )
         .service(
