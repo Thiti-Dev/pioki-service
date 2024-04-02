@@ -201,6 +201,7 @@ impl PostRepository{
             match post_res {
                 Ok(post) => {
                     // create the post_keepers
+                    let post_owner_id = post.creator_id.to_string();
                     let count_res: Result<i64,diesel::result::Error> = post_keepers.select(count_star()).filter(post_id_col.eq(post_id).and(pass_along_at.is_null())).first::<i64>(conn);
                     if let Ok(keep_count) = count_res{
                         if keep_count as i32 >= post.origin_quota_limit{
@@ -224,15 +225,17 @@ impl PostRepository{
                         .returning(KeepAndPassAlongLog::as_returning())
                         .get_result::<KeepAndPassAlongLog>(conn);
 
-                        let has_user_kept_this_post_before = self.check_if_user_ever_keep_this_post(user_id.to_string(), post_id);
-                        if !has_user_kept_this_post_before{
-                            // first time keeping this post
-                            // give the point to the post owner
-                            let post_owner_id = post.creator_id.to_string();
-
-                            let coin_updation: Result<_, _> = diesel::update(users.filter(pioki_id.eq(post_owner_id))).set(coin_amount.eq(coin_amount + BigDecimal::from_i8(1).unwrap())).execute(conn);
-                            if coin_updation.is_err(){
-                                return Err(PostKeepingError::RollbackError)
+                        if post_owner_id != user_id{ // Prevent self spamming, while still allowing to keep yourself message
+                            let has_user_kept_this_post_before = self.check_if_user_ever_keep_this_post(user_id.to_string(), post_id);
+                            if !has_user_kept_this_post_before{
+                                // first time keeping this post
+                                // give the point to the post owner
+                                // let post_owner_id = post.creator_id.to_string();
+    
+                                let coin_updation: Result<_, _> = diesel::update(users.filter(pioki_id.eq(post_owner_id.to_string()))).set(coin_amount.eq(coin_amount + BigDecimal::from_i8(1).unwrap())).execute(conn);
+                                if coin_updation.is_err(){
+                                    return Err(PostKeepingError::RollbackError)
+                                }
                             }
                         }
 
