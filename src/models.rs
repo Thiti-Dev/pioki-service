@@ -1,3 +1,4 @@
+use bigdecimal::BigDecimal;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::Serialize;
@@ -21,6 +22,8 @@ pub struct User {
     pub created_at: NaiveDateTime,
     
     pub updated_at: NaiveDateTime,
+
+    pub coin_amount: BigDecimal
 }
 
 #[derive(Insertable)]
