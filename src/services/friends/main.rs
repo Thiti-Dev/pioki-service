@@ -1,6 +1,6 @@
 use actix_web::{web::{Data, Path, ReqData}, HttpRequest, HttpResponse, Responder};
 
-use crate::{domains::repositories::repositories::Repositories, dtos::{friends::{ListFriendResponseDTO, PendingFriendResponseDTO}, users::SendFriendRequestParams, ResponseToUserEnd}, middlewares::{valid_incoming_source_checker::PortalAuthenticated, PIOKIIdentifierData}, repository};
+use crate::{domains::repositories::repositories::Repositories, dtos::{friends::{ListFriendResponseDTO, PendingFriendResponseDTO}, users::{SendFriendRequestParams, UserIdParams}, ResponseToUserEnd}, middlewares::{valid_incoming_source_checker::PortalAuthenticated, PIOKIIdentifierData}, repository};
 
 pub async fn send_friend_request(
     _: HttpRequest,
@@ -75,27 +75,22 @@ pub async fn list_pending_friend_requests(
 
 pub async fn list_friend(
     _: HttpRequest ,
-    identifier_data: Option<ReqData<PIOKIIdentifierData>>,
+    param: Path<UserIdParams>,
     repositories: Data<Repositories>,
     _:PortalAuthenticated) -> impl Responder {
-    match identifier_data{
-        Some(identifier) => {
-            match repositories.friend_repository.list_friend_of_user(&identifier.id){
+        match repositories.friend_repository.list_friend_of_user(&param.user_id){
                 Ok(res) => {
                     let res = res.iter().map(|ele| ListFriendResponseDTO{
                         id: ele.1.id,
                         oauth_display_name: ele.1.oauth_display_name.to_owned(),
                         oauth_profile_picture: ele.1.oauth_profile_picture.to_owned(),
-                        pioki_id: ele.0.pioki_friend_id.to_owned()
+                        pioki_id: ele.0.pioki_id.to_owned(),
+                        coin_owned: ele.1.coin_amount.to_owned()
                     }).collect::<Vec<ListFriendResponseDTO>>();
                     HttpResponse::Ok().json(ResponseToUserEnd::only_this_message("success").with_data(res))                    
                 },
                 Err(e) => {
-                    println!("{}", e.to_string());
                     return HttpResponse::BadGateway().body("Bad incoming source")
                 },
-            }
-        },
-        None => HttpResponse::BadGateway().body("Bad incoming source"),
-    }
-}
+        }
+ }

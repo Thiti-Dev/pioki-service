@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use actix_web::web;
-use crate::{db_connection::get_connection_pool, domains::repositories::repositories::Repositories, repository, services::{friends::{list_friend, list_pending_friend_requests, send_friend_request}, me::main::{list_kept_post_ids, list_kept_posts}, posts::main::{check_if_post_is_already_owned, create_post, keep_post, list_user_posts, pass_post}, users::{create_user, get_user, get_users}}};
+use crate::{db_connection::get_connection_pool, domains::repositories::repositories::Repositories, repository, services::{friends::{list_friend, list_pending_friend_requests, send_friend_request}, me::main::{get_relationship_status_with_user, list_kept_post_ids, list_kept_posts}, posts::main::{check_if_post_is_already_owned, create_post, keep_post, list_user_posts, pass_post}, users::{create_user, get_user, get_users}}};
 
 pub struct AppState{
     pub suspicious: bool
@@ -49,17 +49,21 @@ pub fn configure_route(cfg: &mut web::ServiceConfig) {
                 web::resource("/{user_id}/posts")
                 .route(web::get().to(list_user_posts))
             )
-        )
-        .service(
-            web::resource("/users/{send_to_user_id}/send-friend-request").
-            route(web::post().to(send_friend_request))
+            .service(
+                web::resource("/{user_id}/friends")
+                .route(web::get().to(list_friend))
+            )
+            .service(
+                web::resource("/{send_to_user_id}/send-friend-request")
+                .route(web::post().to(send_friend_request))
+            )
         )
         .service(
             web::scope("/friends")
-            .service(
-                web::resource("").
-                route(web::get().to(list_friend)) // api/friends
-            )
+            // .service(
+            //     web::resource("").
+            //     route(web::get().to(list_friend)) // api/friends
+            // )
             .service(
                 web::resource("/pending").
                 route(web::get().to(list_pending_friend_requests)) // api/friends/pending           
@@ -92,6 +96,10 @@ pub fn configure_route(cfg: &mut web::ServiceConfig) {
             .service(
                 web::resource("/kept_posts").
                 route(web::get().to(list_kept_posts)) // api/posts
+            )
+            .service(
+                web::resource("/relationship_status/{user_id}").
+                route(web::get().to(get_relationship_status_with_user)) // api/posts
             )
         )
     );

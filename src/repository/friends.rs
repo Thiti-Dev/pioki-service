@@ -1,7 +1,7 @@
 use std::{borrow::Borrow, collections::HashMap, ops::Deref, rc::Rc};
 
 use diesel::{associations::HasTable, prelude::*, sql_query, sql_types::Text};
-use crate::{db_connection::DbPool, models::{Friend, User}, schema::users};
+use crate::{db_connection::DbPool, dtos::friends::RelationshipStatus, models::{Friend, User}, schema::users};
 
 use super::users::UserRepository;
 
@@ -59,7 +59,7 @@ impl FriendRepository{
         // Join the friends table with itself to find mutual friendships
 
         let friends_query = sql_query(format!("
-            SELECT f1.*
+            SELECT f2.*
             FROM friends f1
             JOIN friends f2 ON f1.pioki_id = f2.pioki_friend_id AND f1.pioki_friend_id = f2.pioki_id
             WHERE f1.pioki_id = '{}'
@@ -79,6 +79,35 @@ impl FriendRepository{
                 return Ok(res)
             },
             Err(_) => todo!(),
+        }
+    }
+
+    pub fn check_if_user_already_be_friend_with_this_user(&self, user_id: String, target_user_id: String) -> Result<RelationshipStatus,diesel::result::Error>{
+        let connection = &mut self.db_pool.get().unwrap();
+        let friends_query = sql_query(format!("
+            SELECT * FROM friends where (pioki_id = '{}' and pioki_friend_id = '{}') 
+            or (pioki_friend_id = '{}' and pioki_id = '{}') 
+        "
+        ,user_id,target_user_id,user_id,target_user_id))
+        .get_results::<Friend>(connection);
+
+        match friends_query{
+            Ok(friends) => {
+                let length =  friends.len();
+                if length == 2{
+                    return Ok(RelationshipStatus::Friended)
+                }
+                else if length == 1{
+                    if friends[0].pioki_id == user_id{
+                        return Ok(RelationshipStatus::Requested)
+                    }else{
+                        return Ok(RelationshipStatus::Pending)
+                    }
+                }else{
+                    return Ok(RelationshipStatus::None)
+                }
+            },
+            Err(e) => Err(e),
         }
     }
 }
