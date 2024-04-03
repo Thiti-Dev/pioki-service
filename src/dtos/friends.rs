@@ -9,7 +9,8 @@ pub struct PendingFriendResponseDTO{
     pub pioki_id: String,
     pub oauth_display_name: String,
     pub oauth_profile_picture:  Option<String>,
-    pub requested_at: Option<NaiveDateTime>
+    pub requested_at: Option<NaiveDateTime>,
+    pub coin_owned: BigDecimal
 }
 
 #[derive(Serialize)]

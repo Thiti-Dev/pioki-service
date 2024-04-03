@@ -59,7 +59,8 @@ pub async fn list_pending_friend_requests(
                         oauth_display_name: ele.1.oauth_display_name.to_owned(),
                         oauth_profile_picture: ele.1.oauth_profile_picture.to_owned(),
                         pioki_id: ele.1.pioki_id.to_owned(),
-                        requested_at: ele.0.created_at
+                        requested_at: ele.0.created_at,
+                        coin_owned: ele.1.coin_amount.to_owned()
                     }).collect::<Vec<PendingFriendResponseDTO>>();
                     HttpResponse::Ok().json(ResponseToUserEnd::only_this_message("success").with_data(res))
                 },

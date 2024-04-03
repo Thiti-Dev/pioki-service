@@ -26,10 +26,15 @@ impl FriendRepository{
     pub fn list_pending_friend_request(&self, user_id: &str) -> Result<Vec<(Friend, User)>, diesel::result::Error>{
         let connection = &mut self.db_pool.get().unwrap();
         let friends_query = sql_query(format!("
-        SELECT f1.*
+        SELECT DISTINCT f1.*
         FROM friends f1
-        JOIN friends f2 ON f2.pioki_id = '{}' AND f2.pioki_friend_id <> f1.pioki_id
-        WHERE f1.pioki_friend_id = '{}'
+        WHERE pioki_friend_id = '{}'
+        AND pioki_id NOT IN (
+            SELECT DISTINCT pioki_friend_id
+            FROM friends
+            WHERE pioki_id = '{}'
+            AND pioki_friend_id = f1.pioki_id
+        );
         "
         ,user_id,user_id))
         // .bind::<Text,_>(user_id)
