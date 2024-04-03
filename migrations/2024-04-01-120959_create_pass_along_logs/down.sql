@@ -1,0 +1,4 @@
+DROP INDEX IF EXISTS idx_keep_and_pass_along_logs_pioki_id;
+DROP INDEX IF EXISTS idx_keep_and_pass_along_logs_pioki_id_and_post_id;
+DROP INDEX IF EXISTS idx_keep_and_pass_along_logs_pioki_id_and_post_id_and_is_kept;
+DROP TABLE IF EXISTS keep_and_pass_along_logs;

@@ -13,6 +13,7 @@ mod db_connection;
 mod dtos;
 mod models;
 mod schema;
+mod domains;
 
 
 #[derive(Serialize)] // Required for serde

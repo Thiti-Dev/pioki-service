@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
@@ -7,7 +8,7 @@ pub struct UserResponseDTO{
     pub id:i32,
     pub pioki_id: String,
     pub is_active: bool,
-    pub created_at: String
+    pub created_at: NaiveDateTime
 }
 
 #[derive(Deserialize,Debug,Validate)]
@@ -17,4 +18,14 @@ pub struct CreateUserDTO {
 
     #[validate(url(message = "The url is invalid"))]
     pub oauth_profile_picture: Option<String>
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SendFriendRequestParams {
+    pub send_to_user_id: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct UserIdParams {
+    pub user_id: String,
 }
