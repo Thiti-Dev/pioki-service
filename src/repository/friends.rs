@@ -115,4 +115,13 @@ impl FriendRepository{
             Err(e) => Err(e),
         }
     }
+
+    pub fn remove_friend(&self, user_id: String, target_user_id: String) -> bool{
+        use crate::schema::friends::dsl::*;
+
+        let connection = &mut self.db_pool.get().unwrap();
+        let removal: QueryResult<usize> = diesel::delete(friends.filter((pioki_id.eq(user_id.to_owned()).and(pioki_friend_id.eq(target_user_id.to_owned()))).or(pioki_id.eq(target_user_id).and(pioki_friend_id.eq(user_id))))).execute(connection);
+
+        return removal.is_ok()
+    }
 }

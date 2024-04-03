@@ -95,3 +95,22 @@ pub async fn list_friend(
                 },
         }
  }
+
+ pub async fn remove_friend(
+    _: HttpRequest ,
+    identifier_data: Option<ReqData<PIOKIIdentifierData>>,
+    param: Path<UserIdParams>,
+    repositories: Data<Repositories>,
+    _:PortalAuthenticated) -> impl Responder {
+        match identifier_data{
+            Some(identifier) => {
+                let removal = repositories.friend_repository.remove_friend(identifier.id.to_owned(), param.user_id.to_owned());
+                if !removal{
+                    return HttpResponse::InternalServerError().json(ResponseToUserEnd::<()>::only_this_message("Unknown error has occured")) 
+                }
+
+                return HttpResponse::Ok().json(ResponseToUserEnd::<()>::only_this_message("success"))
+            },
+            None => HttpResponse::BadGateway().body("Bad incoming source"),
+        }      
+ }
