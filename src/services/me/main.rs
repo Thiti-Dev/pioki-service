@@ -76,3 +76,21 @@ pub async fn get_relationship_status_with_user(
     }
 
 }
+
+
+pub async fn get_post_feeds(
+    _: HttpRequest,
+    identifier_data: Option<ReqData<PIOKIIdentifierData>>,
+    repositories: Data<Repositories>,
+    _:PortalAuthenticated) -> impl Responder {
+
+    if identifier_data.is_none(){
+        return HttpResponse::BadGateway().body("Bad incoming source")
+    }
+
+    let posts_res = repositories.post_repository.get_post_feeds_of_specific_user(identifier_data.unwrap().id.to_owned());
+    match posts_res {
+        Ok(posts) => HttpResponse::Ok().json(ResponseToUserEnd::only_this_message("success").with_data(posts)),
+        Err(_) => HttpResponse::InternalServerError().body("Something has gone wrong . . ."),
+    }
+}

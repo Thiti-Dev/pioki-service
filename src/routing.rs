@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use actix_web::web;
-use crate::{db_connection::get_connection_pool, domains::repositories::repositories::Repositories, repository, services::{friends::{list_friend, list_pending_friend_requests, remove_friend, send_friend_request}, me::main::{get_relationship_status_with_user, list_kept_post_ids, list_kept_posts}, posts::main::{check_if_post_is_already_owned, create_post, keep_post, list_user_posts, pass_post}, users::{create_user, get_user, get_users}}};
+use crate::{db_connection::get_connection_pool, domains::repositories::repositories::Repositories, repository, services::{friends::{list_friend, list_pending_friend_requests, remove_friend, send_friend_request}, me::main::{get_post_feeds, get_relationship_status_with_user, list_kept_post_ids, list_kept_posts}, posts::main::{check_if_post_is_already_owned, create_post, keep_post, list_user_posts, pass_post}, users::{create_user, get_user, get_users}}};
 
 pub struct AppState{
     pub suspicious: bool
@@ -84,26 +84,30 @@ pub fn configure_route(cfg: &mut web::ServiceConfig) {
             )
             .service(
                 web::resource("/{post_id}/is_owned").
-                route(web::get().to(check_if_post_is_already_owned)) // api/posts/{post_id}/keep           
+                route(web::get().to(check_if_post_is_already_owned)) // api/posts/{post_id}/is_own           
             )
             .service(
                 web::resource("/{post_id}/pass").
-                route(web::post().to(pass_post)) // api/posts/{post_id}/keep           
+                route(web::post().to(pass_post)) // api/posts/{post_id}/pass           
             )
         )
         .service(
             web::scope("/me")
             .service(
                 web::resource("/kept_post_ids").
-                route(web::get().to(list_kept_post_ids)) // api/posts
+                route(web::get().to(list_kept_post_ids)) // api/me/relationship_status/kept_post_ids
             )
             .service(
                 web::resource("/kept_posts").
-                route(web::get().to(list_kept_posts)) // api/posts
+                route(web::get().to(list_kept_posts)) // api/me/relationship_status/kept_posts
             )
             .service(
                 web::resource("/relationship_status/{user_id}").
-                route(web::get().to(get_relationship_status_with_user)) // api/posts
+                route(web::get().to(get_relationship_status_with_user)) // api/me/relationship_status/{user_id}
+            )
+            .service(
+                web::resource("/feeds").
+                route(web::get().to(get_post_feeds)) // api/me/feeds
             )
         )
     );
