@@ -2,6 +2,7 @@ use bigdecimal::BigDecimal;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::Serialize;
+use diesel::sql_types::*;
 
 
 #[derive(Queryable, Selectable, Insertable,Serialize,Clone,Default)]
@@ -74,6 +75,33 @@ pub struct Post {
     
     pub updated_at: NaiveDateTime,
 }
+
+#[derive(QueryableByName,Serialize,Clone,Default)]
+#[diesel(table_name = crate::schema::posts)]
+pub struct FeedData{
+    pub id: i32,
+
+    pub creator_id: String,
+
+    pub spoiler_header: Option<String>,
+
+    pub origin_quota_limit: i32,
+
+    pub quota_left: i32,
+
+    pub content: String,
+
+    pub created_at: NaiveDateTime,
+    
+    pub updated_at: NaiveDateTime,
+
+    #[sql_type = "Text"]
+    pub oauth_display_name : String,
+
+    #[sql_type = "Text"]
+    pub oauth_profile_picture : String,
+}
+
 
 #[derive(Insertable)]
 #[diesel(table_name = crate::schema::posts)]

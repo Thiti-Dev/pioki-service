@@ -1,5 +1,6 @@
 // use std::fmt::{Debug, Error};
 use std::rc::Rc;
+use chrono::NaiveDateTime;
 use diesel::dsl::count_star;
 use diesel::{prelude::*, sql_query};
 use diesel::result::Error as DieselError;
@@ -9,11 +10,12 @@ use bigdecimal::{BigDecimal, FromPrimitive};
 use diesel::associations::HasTable;
 use diesel::sql_types::Numeric;
 use diesel::SelectableHelper;
+use serde::Serialize;
 use tokio::task;
 
 use crate::domains::inputs::posts::PostLookupWhereClause;
 use crate::dtos::posts::CreatePostDTO;
-use crate::models::{KeepAndPassAlongLog, NewKeepAndPassAlongLog, NewPost, NewPostKeeper, Post, PostKeeper, User};
+use crate::models::{ FeedData, KeepAndPassAlongLog, NewKeepAndPassAlongLog, NewPost, NewPostKeeper, Post, PostKeeper, User};
 
 pub enum PostKeepingError{
     AlreadyInteractedError,
@@ -64,30 +66,33 @@ impl PostRepository{
 
     }
 
-    pub fn get_post_feeds_of_specific_user(&self, user_id: String) -> Result<Vec<Post>, diesel::result::Error>{
+    pub fn get_post_feeds_of_specific_user(&self, user_id: String) -> Result<Vec<FeedData>, diesel::result::Error>{
         let connection = &mut self.db_pool.get().unwrap();
         let feed_query = sql_query(format!("
-        SELECT p.id,p.creator_id, p.spoiler_header, CASE 
-        WHEN pk.post_id IS NOT NULL THEN spoiler_header 
-        ELSE '#!@#$%-System-Encrypted-#!@#$%' 
-    END as content, p.origin_quota_limit,p.quota_left,p.created_at,p.updated_at 
-FROM public.posts p
-LEFT JOIN 
-    public.post_keepers pk ON p.id = pk.post_id AND pk.pioki_id = '111610436275740323798'
-where creator_id IN (
-	SELECT DISTINCT f1.pioki_id
-	FROM friends f1
-	WHERE pioki_friend_id = '{}'
-	AND pioki_id IN (
-		SELECT DISTINCT pioki_friend_id
-		FROM friends
-		WHERE pioki_id = '{}'
-		AND pioki_friend_id = f1.pioki_id
-	)
-) order by created_at desc
+                SELECT p.id,p.creator_id, p.spoiler_header, CASE 
+                WHEN pk.post_id IS NOT NULL THEN spoiler_header 
+                ELSE '#!@#$%-System-Encrypted-#!@#$%' 
+                END as content, p.origin_quota_limit,p.quota_left,p.created_at,p.updated_at, u.oauth_display_name, u.oauth_profile_picture
+        FROM public.posts p
+        LEFT JOIN 
+            public.post_keepers pk ON p.id = pk.post_id AND pk.pioki_id = '111610436275740323798'
+        LEFT JOIN 
+            public.users u ON p.creator_id = u.pioki_id
+            
+        where creator_id IN (
+            SELECT DISTINCT f1.pioki_id
+            FROM friends f1
+            WHERE pioki_friend_id = '{}'
+            AND pioki_id IN (
+                SELECT DISTINCT pioki_friend_id
+                FROM friends
+                WHERE pioki_id = '{}'
+                AND pioki_friend_id = f1.pioki_id
+            )
+        ) order by created_at desc
         "
         ,user_id,user_id))
-        .get_results::<Post>(connection);      
+        .load::<FeedData>(connection);     
 
         feed_query  
     }
