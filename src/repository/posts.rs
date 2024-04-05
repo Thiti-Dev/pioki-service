@@ -70,7 +70,7 @@ impl PostRepository{
         let connection = &mut self.db_pool.get().unwrap();
         let feed_query = sql_query(format!("
                 SELECT p.id,p.creator_id, p.spoiler_header, CASE 
-                WHEN pk.post_id IS NOT NULL THEN spoiler_header 
+                WHEN pk.post_id IS NOT NULL THEN p.content 
                 ELSE '#!@#$%-System-Encrypted-#!@#$%' 
                 END as content, p.origin_quota_limit,p.quota_left,p.created_at,p.updated_at, u.oauth_display_name, u.oauth_profile_picture
         FROM public.posts p

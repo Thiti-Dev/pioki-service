@@ -91,6 +91,6 @@ pub async fn get_post_feeds(
     let posts_res = repositories.post_repository.get_post_feeds_of_specific_user(identifier_data.unwrap().id.to_owned());
     match posts_res {
         Ok(posts) => HttpResponse::Ok().json(ResponseToUserEnd::only_this_message("success").with_data(posts)),
-        Err(_) => HttpResponse::InternalServerError().body("Something has gone wrong . . ."),
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }
 }

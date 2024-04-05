@@ -19,7 +19,7 @@ pub async fn get_users(_: HttpRequest,repositories: Data<Repositories>) -> impl 
     //     created_at: user.created_at.to_string()
     // }).collect::<Vec<UserResponseDTO>>();
     
-    HttpResponse::Ok().json(users)
+    HttpResponse::Ok().json(ResponseToUserEnd::only_this_message("success").with_data(users))
 }
 
 pub async fn create_user(_: HttpRequest,body: String ,identifier_data: Option<ReqData<PIOKIIdentifierData>>,repositories: Data<Repositories>,_:PortalAuthenticated) -> impl Responder {
