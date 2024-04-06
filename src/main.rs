@@ -22,16 +22,6 @@ struct ProviderPayload {
   id: String,
 }
 
-// fn add_error_header<B>(mut res: ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>> {
-//     res.response_mut().headers_mut().insert(
-//         header::CONTENT_TYPE,
-//         header::HeaderValue::from_static("validation-error"),
-//     );
-
-//     Ok(ErrorHandlerResponse::Response(res.map_into_left_body()))
-// }
-
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
 
@@ -56,7 +46,7 @@ async fn main() -> std::io::Result<()> {
             // )
             .configure(configure_route)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }
