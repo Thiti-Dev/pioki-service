@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use actix_web::web;
-use crate::{db_connection::get_connection_pool, domains::repositories::repositories::Repositories, repository, services::{friends::{list_friend, list_pending_friend_requests, remove_friend, send_friend_request}, me::main::{get_post_feeds, get_relationship_status_with_user, list_kept_post_ids, list_kept_posts}, posts::main::{check_if_post_is_already_owned, create_post, keep_post, list_user_posts, pass_post}, users::{create_user, get_user, get_users}}};
+use crate::{db_connection::get_connection_pool, domains::repositories::repositories::Repositories, repository, services::{friends::{list_friend, list_pending_friend_requests, remove_friend, send_friend_request}, me::main::{get_post_feeds, get_relationship_status_with_user, list_kept_post_ids, list_kept_posts}, posts::main::{check_if_post_is_already_owned, create_post, keep_post, list_user_posts, pass_post}, statistics::main::get_statistic_data, users::{create_user, get_user, get_users}}};
 
 pub struct AppState{
     pub suspicious: bool
@@ -23,11 +23,15 @@ pub fn configure_route(cfg: &mut web::ServiceConfig) {
     let post_repository = repository::posts::PostRepository{
         db_pool:Rc::clone(&db_pool)
     };
+    let statistic_repository = repository::statistic::StatisticRepository{
+        db_pool:Rc::clone(&db_pool)
+    };
 
     let app_repositories = web::Data::new(Repositories{
         friend_repository,
         user_repository,
-        post_repository
+        post_repository,
+        statistic_repository
     });
 
     // TODO: Bundle repos into single struct which has fields that contains repository
@@ -108,6 +112,13 @@ pub fn configure_route(cfg: &mut web::ServiceConfig) {
             .service(
                 web::resource("/feeds").
                 route(web::get().to(get_post_feeds)) // api/me/feeds
+            )
+        )
+        .service(
+            web::scope("/statistics")
+            .service(
+                web::resource("/general").
+                route(web::get().to(get_statistic_data)) // api/me/relationship_status/kept_post_ids
             )
         )
     );
