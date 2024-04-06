@@ -1,3 +1,5 @@
+use std::env;
+
 use reqwest::StatusCode;
 use routing::configure_route;
 use serde::Serialize;
@@ -28,6 +30,13 @@ async fn main() -> std::io::Result<()> {
     // ENV loader
     dotenv().ok();
     //
+    let port = if let Ok(port_str) = env::var("PORT"){
+        if let Ok(port_num) = port_str.parse::<u16>() {
+            port_num
+        } else {
+            8080
+        }
+    }else {8080};
     HttpServer::new(|| {
         App::new()
             .wrap_fn(|req, srv| {
@@ -46,7 +55,7 @@ async fn main() -> std::io::Result<()> {
             // )
             .configure(configure_route)
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind(("0.0.0.0", port))?
     .run()
     .await
 }
